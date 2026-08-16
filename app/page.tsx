@@ -6,7 +6,7 @@ export default function Home() {
       <h1>London Bridges</h1>
       <ul>Western Outer London:
         <li><a href="#HamptonCourt">Hampton Court Bridge (1933)</a> – Art Deco styling</li>
-        <li>Kingston Bridge (1828) – Portland stone construction</li>
+        <li><a href="#Kingston">Kingston Bridge</a> (1828) – Portland stone construction</li>
         <li>Kingston Railway Bridge (1863) – Cast iron lattice work</li>
         <li>Teddington Lock Footbridge (1889) – Victorian pedestrian access</li>
       </ul>
@@ -47,6 +47,9 @@ export default function Home() {
       </ul>
       <div id="HamptonCourt">
         <h2>Hampton Court</h2>
+      </div>
+      <div id="Kingston">
+        <h2>Kingston</h2>
       </div>
     </div>
 
