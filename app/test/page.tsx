@@ -24,7 +24,7 @@ export default function AdvancedNumericalAssessment() {
         setAnswers({});
         setIsSubmitted(false);
         setTimeExpired(false);
-        setTimeLeft(300);
+        setTimeLeft(600);
         setScore(0);
     };
 
