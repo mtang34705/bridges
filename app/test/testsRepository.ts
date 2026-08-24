@@ -199,7 +199,10 @@ export const testsRepository: TestsRepositoryType = {
             ],
             correctAnswer: "A",
             explanation: "WACC = (Weight Equity * Cost Equity) + (Weight Debt * Cost Debt) = (0.60 * 10%) + (0.40 * 5%) = 6.0% + 2.0% = 8.0%."
-        }, { id: "t2q5", topic: "Dividend Discount Model Execution", text: "An enterprise expects to issue a £3.00 per share dividend next year, which will grow at a stable compound rate of 5% indefinitely. If your equity hurdle rate requires a 9% return, what is the fair price limit?", options: [{ val: "A", label: "£75.00" }, { val: "B", label: "£60.00" }, { val: "C", label: "£50.00" }, { val: "D", label: "£100.00" }], correctAnswer: "A", explanation: "Value = Dividend / (Discount Rate - Growth Rate) = 3.00 / (0.09 - 0.05) = 3.00 / 0.04 = £75.00." }, {
+        }, {
+            id: "t2q5", topic: "Dividend Discount Model Execution",
+            text: "An enterprise expects to issue a £3.00 per share dividend next year, which will grow at a stable compound rate of 5% indefinitely. If your equity hurdle rate requires a 9% return, what is the fair price limit?", options: [{ val: "A", label: "£75.00" }, { val: "B", label: "£60.00" }, { val: "C", label: "£50.00" }, { val: "D", label: "£100.00" }], correctAnswer: "A", explanation: "Value = Dividend / (Discount Rate - Growth Rate) = 3.00 / (0.09 - 0.05) = 3.00 / 0.04 = £75.00."
+        }, {
             id: "t2q6", topic: "Compound Annual Growth Matrix",
             text: "A digital portfolio scales metrics from an initial valuation of £2.0M up to £4.5M across 2 compound cycles. Extract the exact performance velocity per period indicator.", options: [{ val: "A", label: "50.0%" }, { val: "B", label: "45.0%" }, { val: "C", text: "37.5%", label: "37.5%" }, { val: "D", label: "22.5%" }], correctAnswer: "A", explanation: "Velocity compound rate check: 2.0 * (1 + Growth)^2 = 4.5 -> (1 + Growth)^2 = 2.25 -> 1 + Growth = 1.5 -> Growth = 50.0%."
         }, {
