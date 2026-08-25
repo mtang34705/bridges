@@ -82,7 +82,7 @@ export const testsRepository: TestsRepositoryType = {
                 { "val": "C", "label": "17" },
                 { "val": "D", "label": "18" }
             ],
-            "correctAnswer": "C",
+            "correctAnswer": "B",
             "explanation": "Sequence increases by 3 each step → 13 + 3 = 16."
         },
 
@@ -96,7 +96,7 @@ export const testsRepository: TestsRepositoryType = {
                 { "val": "C", "label": "0.3" },
                 { "val": "D", "label": "0.5" }
             ],
-            "correctAnswer": "B",
+            "correctAnswer": "C",
             "explanation": "3 red out of 10 total → 3/10 = 0.3."
         },
 
