@@ -26,7 +26,7 @@ export const testsRepository: TestsRepositoryType = {
                 { "val": "C", "label": "15%" },
                 { "val": "D", "label": "30%" }
             ],
-            "correctAnswer": "A",
+            "correctAnswer": "B",
             "explanation": "(100 - 80) / 80 = 0.25 → 25%."
         },
 
@@ -223,7 +223,7 @@ export const testsRepository: TestsRepositoryType = {
                 { "val": "C", "label": "16" },
                 { "val": "D", "label": "18" }
             ],
-            "correctAnswer": "C",
+            "correctAnswer": "B",
             "explanation": "(9+12+15+24) = 60 → 60/4 = 15."
         },
 
