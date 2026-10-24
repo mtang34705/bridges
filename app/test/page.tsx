@@ -1,15 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { testsRepository, TestQuestion } from './testsRepository';
+import { useCallback, useEffect, useState } from 'react';
+import { generateTestQuestions, testsRepository, TestQuestion } from './testsRepository';
 
 export default function AdvancedNumericalAssessment() {
     // Test Selection State
     const [activeTestKey, setActiveTestKey] = useState<string>('test1');
-    const questions = useMemo<TestQuestion[]>(
-        () => testsRepository[activeTestKey] || [],
-        [activeTestKey]
-    );
+    const [questions, setQuestions] = useState<TestQuestion[]>(testsRepository.test1);
 
     // Core Evaluation States
     const [timeLeft, setTimeLeft] = useState<number>(600); // 5 minutes per test
@@ -21,6 +18,7 @@ export default function AdvancedNumericalAssessment() {
     // Clean wipe states when moving to another test menu path
     const handleTestChange = (testKey: string) => {
         setActiveTestKey(testKey);
+        setQuestions(generateTestQuestions(testKey));
         setAnswers({});
         setIsSubmitted(false);
         setTimeExpired(false);
@@ -126,6 +124,13 @@ export default function AdvancedNumericalAssessment() {
                     <p className="text-slate-600 max-w-2xl text-sm md:text-base">
                         This module benchmarks microfinance tracking, corporate structure valuation metrics, and yield calculus spreads.
                     </p>
+                    <button
+                        type="button"
+                        onClick={() => handleTestChange(activeTestKey)}
+                        className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                    >
+                        Generate New Version
+                    </button>
                 </header>
 
                 {/* Complete Performance Card Banner */}
@@ -224,7 +229,7 @@ export default function AdvancedNumericalAssessment() {
                             onClick={() => handleTestChange(activeTestKey)}
                             className="w-full mt-4 py-4 px-6 rounded-xl bg-slate-900 text-white text-base md:text-lg font-bold shadow-md hover:bg-slate-800 active:scale-[0.99] transition-all focus:outline-none"
                         >
-                            Reset Current Module Run
+                            Generate New Version
                         </button>
                     )}
                 </div>

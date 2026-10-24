@@ -1345,3 +1345,321 @@ export const testsRepository: TestsRepositoryType = {
 
 
 };
+
+const answerLabels: TestOption['val'][] = ['A', 'B', 'C', 'D'];
+
+function randomInt(min: number, max: number): number {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function formatNumber(value: number): string {
+    return Number.isInteger(value)
+        ? value.toLocaleString('en-GB')
+        : value.toLocaleString('en-GB', { maximumFractionDigits: 2 });
+}
+
+function replaceQuestionNumbers(question: TestQuestion, values: number[]): string {
+    let valueIndex = 0;
+    return question.text.replace(/\d[\d,]*(?:\.\d+)?/g, () => {
+        const value = values[valueIndex++];
+        return value === undefined ? '' : formatNumber(value);
+    });
+}
+
+function formatOption(value: number, template: string): string {
+    const prefix = template.match(/^[^\d]*/)?.[0] ?? '';
+    const suffix = template.match(/[^\d.,]+$/)?.[0] ?? '';
+    return `${prefix}${formatNumber(value)}${suffix}`;
+}
+
+function createVariant(
+    question: TestQuestion,
+    text: string,
+    answer: number,
+    distractors: number[],
+    explanation: string
+): TestQuestion {
+    const correctOption = question.options.find((option) => option.val === question.correctAnswer);
+    const optionTemplate = correctOption?.label ?? '';
+    const values = [answer, ...distractors]
+        .map((value) => Math.round(value * 100) / 100)
+        .filter((value, index, all) => Number.isFinite(value) && all.indexOf(value) === index);
+
+    for (let offset = 1; values.length < answerLabels.length; offset++) {
+        const candidate = Math.round((answer + offset * 3) * 100) / 100;
+        if (!values.includes(candidate)) values.push(candidate);
+    }
+
+    const options = values.slice(0, answerLabels.length)
+        .map((value) => ({ value, label: formatOption(value, optionTemplate) }));
+
+    for (let index = options.length - 1; index > 0; index--) {
+        const swapIndex = randomInt(0, index);
+        [options[index], options[swapIndex]] = [options[swapIndex], options[index]];
+    }
+
+    const correctIndex = options.findIndex((option) => option.value === answer);
+    return {
+        ...question,
+        text,
+        explanation,
+        options: options.map((option, index) => ({
+            val: answerLabels[index],
+            label: option.label,
+        })),
+        correctAnswer: answerLabels[correctIndex],
+    };
+}
+
+function generateQuestionVariantOnce(question: TestQuestion): TestQuestion {
+    const numbers = [...question.text.matchAll(/\d[\d,]*(?:\.\d+)?/g)]
+        .map(([value]) => Number(value.replace(/,/g, '')));
+    const chooseDistractors = (answer: number, gaps: number[] = [5, 10, 15]) =>
+        gaps.map((gap, index) => answer + (index % 2 === 0 ? -gap : gap));
+
+    switch (question.topic) {
+        case 'Percent Change': {
+            if (numbers.length < 2) return question;
+            const start = randomInt(20, 200) * 5;
+            const percent = randomInt(2, 8) * 5;
+            const isDecrease = /decrease/i.test(question.text);
+            const end = start * (isDecrease ? 1 - percent / 100 : 1 + percent / 100);
+            const text = replaceQuestionNumbers(question, [start, end]);
+            const change = isDecrease ? start - end : end - start;
+            return createVariant(
+                question,
+                text,
+                percent,
+                chooseDistractors(percent, [5, 10, 15]),
+                `${formatNumber(change)} ÷ ${formatNumber(start)} = ${formatNumber(percent / 100)} → ${percent}%.`
+            );
+        }
+        case 'Ratios': {
+            if (numbers.length < 3) return question;
+            const first = randomInt(2, 9);
+            const second = randomInt(2, 9);
+            const scale = randomInt(2, 8);
+            const asksForFirst = /second term becomes|first term\??/i.test(question.text);
+            const knownTerm = asksForFirst ? second * scale : first * scale;
+            const answer = asksForFirst ? first * scale : second * scale;
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, [first, second, knownTerm]),
+                answer,
+                chooseDistractors(answer, [2, 4, 6]),
+                `${formatNumber(asksForFirst ? second : first)} → ${formatNumber(knownTerm)} is ×${scale}, so ${formatNumber(asksForFirst ? first : second)} × ${scale} = ${answer}.`
+            );
+        }
+        case 'Averages': {
+            if (numbers.length < 4) return question;
+            const values = Array.from({ length: 4 }, () => randomInt(10, 60));
+            const answer = values.reduce((sum, value) => sum + value, 0) / values.length;
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, values),
+                answer,
+                chooseDistractors(answer, [1, 2, 3]),
+                `(${values.join(' + ')}) ÷ 4 = ${formatNumber(answer)}.`
+            );
+        }
+        case 'Sequences': {
+            if (numbers.length < 4) return question;
+            const start = randomInt(2, 20);
+            const step = randomInt(2, 9);
+            const sequence = [start, start + step, start + 2 * step, start + 3 * step];
+            const answer = start + 4 * step;
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, sequence),
+                answer,
+                chooseDistractors(answer, [1, 2, 3]),
+                `The sequence increases by ${step} each time → ${sequence[3]} + ${step} = ${answer}.`
+            );
+        }
+        case 'Probability': {
+            if (/fair die/i.test(question.text)) {
+                const sides = randomInt(3, 8) * 2;
+                const favorableOutcomes = sides / 2;
+                const answer = favorableOutcomes / sides;
+                return createVariant(
+                    question,
+                    `A fair ${sides}-sided die is rolled. Probability of rolling an even number?`,
+                    answer,
+                    [1 / sides, (favorableOutcomes - 1) / sides, (favorableOutcomes + 1) / sides],
+                    `${favorableOutcomes} of ${sides} outcomes are even → ${favorableOutcomes}/${sides} = ${formatNumber(answer)}.`
+                );
+            }
+            if (numbers.length < 3) return question;
+            const colorMatch = question.text.match(/drawing\s+(?:a\s+)?(red|blue|green|yellow|black|white)/i);
+            if (!colorMatch) return question;
+            const targetColor = colorMatch[1].toLowerCase();
+            const colors = [...question.text.matchAll(/\b(red|blue|green|yellow|black|white)\b/gi)]
+                .map(([color]) => color.toLowerCase())
+                .filter((color, index, all) => all.indexOf(color) === index);
+            const targetIndex = colors.indexOf(targetColor);
+            if (targetIndex < 0 || targetIndex > 2) return question;
+            const targetCount = randomInt(1, 8);
+            const firstOtherCount = randomInt(1, 9 - targetCount);
+            const counts = [0, 0, 0];
+            counts[targetIndex] = targetCount;
+            counts[(targetIndex + 1) % 3] = firstOtherCount;
+            counts[(targetIndex + 2) % 3] = 10 - targetCount - firstOtherCount;
+            const answer = targetCount / 10;
+            const probabilityDistractors = Array.from({ length: 9 }, (_, index) => (index + 1) / 10)
+                .filter((value) => value !== answer)
+                .sort(() => Math.random() - 0.5)
+                .slice(0, 3);
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, counts),
+                answer,
+                probabilityDistractors,
+                `${targetCount} out of 10 → ${targetCount}/10 = ${formatNumber(answer)}.`
+            );
+        }
+        case 'Unit Conversion': {
+            if (numbers.length < 1) return question;
+            const kilometres = randomInt(11, 99) / 10;
+            const metres = kilometres * 1000;
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, [kilometres]),
+                metres,
+                chooseDistractors(metres, [100, 200, 300]),
+                `${formatNumber(kilometres)} × 1000 = ${formatNumber(metres)} m.`
+            );
+        }
+        case 'Fractions': {
+            if (numbers.length < 3) return question;
+            const numerator = randomInt(2, 7);
+            const denominator = randomInt(numerator + 1, 10);
+            const amount = denominator * randomInt(10, 40);
+            const answer = numerator * amount / denominator;
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, [numerator, denominator, amount]),
+                answer,
+                chooseDistractors(answer, [5, 10, 15]),
+                `${formatNumber(amount)} ÷ ${denominator} × ${numerator} = ${formatNumber(answer)}.`
+            );
+        }
+        case 'Simple Interest': {
+            if (numbers.length < 3) return question;
+            const principal = randomInt(5, 50) * 100;
+            const rate = [2, 2.5, 3, 4, 5, 6][randomInt(0, 5)];
+            const years = randomInt(1, 5);
+            const answer = principal * rate / 100 * years;
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, [principal, rate, years]),
+                answer,
+                chooseDistractors(answer, [10, 20, 30]),
+                `${formatNumber(principal)} × ${formatNumber(rate / 100)} × ${years} = ${formatNumber(answer)}.`
+            );
+        }
+        case 'Area': {
+            if (numbers.length < 2) return question;
+            const width = randomInt(4, 20);
+            const height = randomInt(4, 20);
+            const isTriangle = /triangle/i.test(question.text);
+            const answer = width * height / (isTriangle ? 2 : 1);
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, [width, height]),
+                answer,
+                chooseDistractors(answer, [4, 8, 12]),
+                isTriangle
+                    ? `½ × ${width} × ${height} = ${formatNumber(answer)}.`
+                    : `${width} × ${height} = ${answer}.`
+            );
+        }
+        case 'Volume': {
+            if (numbers.length < 1) return question;
+            const side = randomInt(2, 10);
+            const answer = side ** 3;
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, [side]),
+                answer,
+                chooseDistractors(answer, [2, 4, 6]),
+                `${side}³ = ${answer}.`
+            );
+        }
+        case 'Speed & Distance': {
+            if (numbers.length < 2) return question;
+            const speed = randomInt(5, 20) * 5;
+            const isMinutes = /minutes?/i.test(question.text);
+            const duration = isMinutes
+                ? [30, 40, 45, 48, 60][randomInt(0, 4)]
+                : [1, 1.2, 1.5, 2, 2.5, 3, 4][randomInt(0, 6)];
+            const distance = speed * duration / (isMinutes ? 60 : 1);
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, [distance, duration]),
+                speed,
+                chooseDistractors(speed, [5, 10, 15]),
+                `${formatNumber(distance)} ÷ ${formatNumber(isMinutes ? duration / 60 : duration)} = ${speed} km/h.`
+            );
+        }
+        case 'Algebra': {
+            if (numbers.length < 3) return question;
+            const coefficient = randomInt(2, 12);
+            const offset = randomInt(2, 20);
+            const isAddition = /\+\s*\d+\s*=/.test(question.text);
+            const solution = randomInt(2, 12);
+            const result = coefficient * solution + (isAddition ? offset : -offset);
+            const text = replaceQuestionNumbers(question, [coefficient, offset, result]);
+            return createVariant(
+                question,
+                text,
+                solution,
+                chooseDistractors(solution, [1, 2, 3]),
+                `${coefficient}x ${isAddition ? '+' : '-'} ${offset} = ${result} → ${coefficient}x = ${coefficient * solution} → x = ${solution}.`
+            );
+        }
+        case 'Proportions': {
+            if (numbers.length < 3) return question;
+            if (/how long|hours take/i.test(question.text)) {
+                const baseWorkers = randomInt(3, 8);
+                const scale = randomInt(2, 4);
+                const originalWorkers = baseWorkers * scale;
+                const fewerWorkers = baseWorkers;
+                const hours = randomInt(5, 20);
+                const answer = hours * scale;
+                return createVariant(
+                    question,
+                    replaceQuestionNumbers(question, [originalWorkers, hours, fewerWorkers]),
+                    answer,
+                    chooseDistractors(answer, [2, 4, 6]),
+                    `${originalWorkers} workers take ${hours} hours; using ${fewerWorkers} workers multiplies the time by ${scale} → ${hours} × ${scale} = ${answer} hours.`
+                );
+            }
+            const workers = randomInt(6, 20);
+            const unitsPerWorker = randomInt(2, 12) * 5;
+            const newWorkers = randomInt(2, workers - 1);
+            const totalUnits = workers * unitsPerWorker;
+            const answer = newWorkers * unitsPerWorker;
+            return createVariant(
+                question,
+                replaceQuestionNumbers(question, [workers, totalUnits, newWorkers]),
+                answer,
+                chooseDistractors(answer, [10, 20, 30]),
+                `${totalUnits} ÷ ${workers} = ${unitsPerWorker} per worker → ${newWorkers} × ${unitsPerWorker} = ${answer}.`
+            );
+        }
+        default:
+            return question;
+    }
+}
+
+function generateQuestionVariant(question: TestQuestion): TestQuestion {
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const variant = generateQuestionVariantOnce(question);
+        if (variant.text !== question.text) return variant;
+    }
+    throw new Error(`Could not generate a distinct version of question ${question.id}.`);
+}
+
+export function generateTestQuestions(testKey: string): TestQuestion[] {
+    return (testsRepository[testKey] ?? []).map(generateQuestionVariant);
+}
